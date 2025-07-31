@@ -1,7 +1,173 @@
-
 <!DOCTYPE html>
 <html lang="it">
-<head><meta charset="UTF-8"><title>App Completa</title></head>
-<body><h1>App Centro Diurno COMPLETA</h1></body>
-</html>
+<head>
+  <meta charset="UTF-8">
+  <title>Centro Diurno - Gestione Trasporti</title>
+  <style>
+    body { font-family: sans-serif; background: #f9fafb; padding: 20px; }
+    h1 { color: #1f2937; }
+    .tabs { margin-top: 20px; display: flex; gap: 10px; }
+    .tab-button { padding: 10px 15px; cursor: pointer; background: #e5e7eb; border: none; border-radius: 6px; }
+    .tab-button.active { background: #3b82f6; color: white; }
+    .section { display: none; margin-top: 20px; }
+    .section.active { display: block; }
+    input, button, select { padding: 6px; margin: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f3f4f6; }
+    .btn { padding: 4px 8px; cursor: pointer; }
+    .del { background: #ef4444; color: white; }
+  </style>
+</head>
+<body>
+  <h1>🚐 Centro Diurno - Gestione Trasporti</h1>
 
+  <div class="tabs">
+    <button class="tab-button active" onclick="showTab('utenti')">Utenti</button>
+    <button class="tab-button" onclick="showTab('operatori')">Operatori</button>
+    <button class="tab-button" onclick="showTab('veicoli')">Veicoli</button>
+  </div>
+
+  <div id="utenti" class="section active">
+    <h2>👥 Utenti</h2>
+    <input type="text" id="uname" placeholder="Nome">
+    <input type="text" id="uaddress" placeholder="Indirizzo">
+    <button onclick="addUtente()">Aggiungi</button>
+    <table id="utenti-table"><thead><tr><th>Nome</th><th>Indirizzo</th><th>Azioni</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="operatori" class="section">
+    <h2>🚗 Operatori</h2>
+    <input type="text" id="oname" placeholder="Nome">
+    <input type="text" id="ophone" placeholder="Telefono">
+    <select id="oshift"><option>Mattina</option><option>Pomeriggio</option><option>Entrambi</option></select>
+    <select id="ospecial"><option>No</option><option>Sì</option></select>
+    <button onclick="addOperatore()">Aggiungi</button>
+    <table id="operatori-table"><thead><tr><th>Nome</th><th>Telefono</th><th>Turno</th><th>Speciale</th><th>Azioni</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div id="veicoli" class="section">
+    <h2>🚐 Veicoli</h2>
+    <input type="text" id="vname" placeholder="Nome veicolo">
+    <input type="text" id="vplate" placeholder="Targa">
+    <input type="number" id="vseats" placeholder="Posti" min="1">
+    <select id="vlift"><option>No</option><option>Sì</option></select>
+    <input type="number" id="vwheel" placeholder="Posti carrozzina" min="0">
+    <select id="vside"><option>No</option><option>Sì</option></select>
+    <select id="vlong"><option>No</option><option>Sì</option></select>
+    <select id="vspecial"><option>No</option><option>Sì</option></select>
+    <button onclick="addVeicolo()">Aggiungi</button>
+    <table id="veicoli-table"><thead><tr><th>Nome</th><th>Targa</th><th>Posti</th><th>Lift</th><th>Carrozzine</th><th>Laterale</th><th>Lungo</th><th>Speciale</th><th>Azioni</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <script>
+    const API = "https://sheetdb.io/api/v1/xz0u9gry34yfk";
+
+    function showTab(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    function loadUtenti() {
+      fetch(API + "/sheet/Utenti").then(r => r.json()).then(data => {
+        const body = document.querySelector("#utenti-table tbody");
+        body.innerHTML = "";
+        data.forEach((u) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${u.name}</td><td>${u.address}</td><td><button class='btn del' onclick='delRow("Utenti", "${u.name}", "${u.address}")'>Elimina</button></td>`;
+          body.appendChild(tr);
+        });
+      });
+    }
+
+    function addUtente() {
+      const n = document.getElementById("uname").value.trim();
+      const a = document.getElementById("uaddress").value.trim();
+      if (!n || !a) return alert("Compila tutti i campi");
+      fetch(API + "/sheet/Utenti", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({data: [{ name: n, address: a }]})
+      }).then(() => { document.getElementById("uname").value = ""; document.getElementById("uaddress").value = ""; loadUtenti(); });
+    }
+
+    function loadOperatori() {
+      fetch(API + "/sheet/Operatori").then(r => r.json()).then(data => {
+        const body = document.querySelector("#operatori-table tbody");
+        body.innerHTML = "";
+        data.forEach((o) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${o.name}</td><td>${o.phone}</td><td>${o.shift}</td><td>${o.canDriveSpecial}</td><td><button class='btn del' onclick='delRow("Operatori", "${o.name}", "${o.phone}")'>Elimina</button></td>`;
+          body.appendChild(tr);
+        });
+      });
+    }
+
+    function addOperatore() {
+      const n = document.getElementById("oname").value.trim();
+      const p = document.getElementById("ophone").value.trim();
+      const s = document.getElementById("oshift").value;
+      const c = document.getElementById("ospecial").value;
+      if (!n || !p) return alert("Compila tutti i campi");
+      fetch(API + "/sheet/Operatori", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({data: [{ name: n, phone: p, shift: s, canDriveSpecial: c }]})
+      }).then(() => { document.getElementById("oname").value = ""; document.getElementById("ophone").value = ""; loadOperatori(); });
+    }
+
+    function loadVeicoli() {
+      fetch(API + "/sheet/Veicoli").then(r => r.json()).then(data => {
+        const body = document.querySelector("#veicoli-table tbody");
+        body.innerHTML = "";
+        data.forEach((v) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${v.name}</td><td>${v.plate}</td><td>${v.totalSeats}</td><td>${v.hasLift}</td><td>${v.wheelchairSpots}</td><td>${v.hasSidePlatform}</td><td>${v.isLongBase}</td><td>${v.needsSpecialLicense}</td><td><button class='btn del' onclick='delRow("Veicoli", "${v.name}", "${v.plate}")'>Elimina</button></td>`;
+          body.appendChild(tr);
+        });
+      });
+    }
+
+    function addVeicolo() {
+      const n = document.getElementById("vname").value.trim();
+      const p = document.getElementById("vplate").value.trim();
+      const t = document.getElementById("vseats").value;
+      const l = document.getElementById("vlift").value;
+      const w = document.getElementById("vwheel").value;
+      const s = document.getElementById("vside").value;
+      const lo = document.getElementById("vlong").value;
+      const sp = document.getElementById("vspecial").value;
+      if (!n || !p || !t) return alert("Compila i campi obbligatori");
+      fetch(API + "/sheet/Veicoli", {
+        method: "POST",
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({data: [{
+          name: n, plate: p, totalSeats: t, hasLift: l, wheelchairSpots: w,
+          hasSidePlatform: s, isLongBase: lo, needsSpecialLicense: sp
+        }]})
+      }).then(() => { document.getElementById("vname").value = ""; document.getElementById("vplate").value = ""; loadVeicoli(); });
+    }
+
+    function delRow(sheet, key1, key2) {
+      const query = sheet === "Utenti" ? `name=${encodeURIComponent(key1)}&address=${encodeURIComponent(key2)}` :
+                    sheet === "Operatori" ? `name=${encodeURIComponent(key1)}&phone=${encodeURIComponent(key2)}` :
+                    `name=${encodeURIComponent(key1)}&plate=${encodeURIComponent(key2)}`;
+      fetch(`${API}/sheet/${sheet}/search?${query}`, {
+        method: "DELETE"
+      }).then(() => {
+        if (sheet === "Utenti") loadUtenti();
+        else if (sheet === "Operatori") loadOperatori();
+        else loadVeicoli();
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadUtenti();
+      loadOperatori();
+      loadVeicoli();
+    });
+  </script>
+</body>
+</html>
